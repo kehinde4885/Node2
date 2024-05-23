@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 
 /* GET home page. */
-router.get('/', function(req, res, next) {
+router.get('/', function (req, res, next) {
+  console.log("here")
   res.redirect("/catalog")
 });
 
@@ -11,3 +12,4 @@ router.get('/users/:userId/books/:booksId', (req, res) => {
 })
 
 module.exports = router;
+
