@@ -119,10 +119,52 @@ exports.genre_delete_post = asyncHandler(async (req, res, next) => {
 
 // Display Genre update form on GET.
 exports.genre_update_get = asyncHandler(async (req, res, next) => {
-  res.send("NOT IMPLEMENTED: Genre update GET");
+  const genre = await Genre.findById(req.params.id).exec();
+
+  if (genre === null) {
+    res.redirect("/catalog/genres");
+  }
+
+  res.render("genre_form", { title: "Create Genre", genre: genre });
 });
 
 // Handle Genre update on POST.
-exports.genre_update_post = asyncHandler(async (req, res, next) => {
-  res.send("NOT IMPLEMENTED: Genre update POST");
-});
+exports.genre_update_post = [
+  //Validate and Sanitize data
+  body("name", "Genre must be Specified").trim().isLength({ min: 1 }).escape(),
+
+  asyncHandler(async (req, res, next) => {
+    //Grab errors padded to request
+
+    const errors = validationResult(req);
+
+    //create new Genre object using model and old id
+
+    const genre = new Genre({
+      name: req.body.name,
+      _id: req.params.id,
+    });
+
+    //check errors
+    if (!errors.isEmpty()) {
+      //rerender form
+      const genre = await Genre.findById(req.params.id).exec();
+
+      res.render("genre_form", {
+        title: "Create Genre",
+        genre: genre,
+        errors: errors.array(),
+      });
+    } else {
+      //Form is correct, update Recods
+
+      const updatedGenre = await Genre.findByIdAndUpdate(
+        req.params.id,
+        genre,
+        {}
+      );
+
+      res.redirect(updatedGenre.url);
+    }
+  }),
+];

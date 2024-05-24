@@ -46,8 +46,33 @@ AuthorSchema.virtual("lifespan").get(function () {
 
   const lifespan = `${dob} - ${dod}`;
 
-  return lifespan
+  return lifespan;
 });
+
+AuthorSchema.virtual("date_of_birth_formatted").get(function () {
+  return this.date_of_birth
+    ? DateTime.fromJSDate(this.date_of_birth).toLocaleString(DateTime.DATE_MED)
+    : "NA";
+});
+
+AuthorSchema.virtual("date_of_death_formatted").get(function () {
+  return this.date_of_death
+    ? DateTime.fromJSDate(this.date_of_death).toLocaleString(DateTime.DATE_MED)
+    : "Present";
+});
+
+AuthorSchema.virtual("date_of_death_yyyy_mm_dd").get(function () {
+  return this.date_of_death
+    ? DateTime.fromJSDate(this.date_of_death).toISODate()
+    : "Present";
+});
+
+AuthorSchema.virtual("date_of_birth_yyyy_mm_dd").get(function () {
+  return this.date_of_birth
+    ? DateTime.fromJSDate(this.date_of_birth).toISODate()
+    : "Present";
+});
+
 
 // Export model
 module.exports = mongoose.model("Author", AuthorSchema);

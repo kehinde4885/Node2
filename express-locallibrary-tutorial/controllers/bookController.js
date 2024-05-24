@@ -156,7 +156,6 @@ exports.book_delete_get = asyncHandler(async (req, res, next) => {
     Book.findById(req.params.id).exec(),
     BookInstance.find({ book: req.params.id }).exec(),
   ]);
-  console.log(allBookInstances);
 
   if (book === null) {
     //Book to delete not found
@@ -173,16 +172,16 @@ exports.book_delete_get = asyncHandler(async (req, res, next) => {
 
 // Handle book delete on POST.
 exports.book_delete_post = asyncHandler(async (req, res, next) => {
-  const book = await Book.findById(req.params.id).exec()
+  const book = await Book.findById(req.params.id).exec();
 
   if (book === null) {
     //No book found
-    res.redirect("/catalog/books")
+    res.redirect("/catalog/books");
   }
-  
-  console.log("book deleted")
+
+  console.log("book deleted");
   //await Book.findByIdAndDelete(req.body.bookid)
-  res.redirect("/catalog/books")
+  res.redirect("/catalog/books");
 });
 
 // Display book update form on GET.
@@ -278,10 +277,12 @@ exports.book_update_post = [
         book: book,
         errors: errors.array(),
       });
-      return;
+      return; // ? why is this return statement here?
     } else {
       // Data from form is valid. Update the record.
+
       const updatedBook = await Book.findByIdAndUpdate(req.params.id, book, {});
+
       // Redirect to book detail page.
       res.redirect(updatedBook.url);
     }
