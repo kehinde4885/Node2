@@ -1,166 +1,79 @@
-// //gets the http built in module from node using commonJS notation
-// const http = require("node:http");
+const createError = require("http-errors");
+const express = require("express");
+const path = require("path");
+const cookieParser = require("cookie-parser");
+const logger = require("morgan");
+const compression = require("compression");
+const helmet = require("helmet");
 
-// //creates a server
-// //function here is called once for every request to this server
-// const server = http.createServer((req, res) => {
-//   const { method, url, headers } = req;
+const RateLimit = require("express-rate-limit");
+const limiter = RateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 20,
+});
 
-//   //When an error is present in the request
-//   req.on('error', (err) => {
-//     console.error(err.stack)
-//   })
+const indexRouter = require("./routes/index");
+const usersRouter = require("./routes/users");
+const catalogRouter = require("./routes/catalog");
 
-//   console.log(headers)
-//     console.log("server reached");
+//Create the Express app Object
+const app = express();
 
-//   res.setHeader('Content-Type', 'application/json')
-//   res.statusCode = 200
+const mongoose = require("mongoose");
+mongoose.set("strictQuery", false);
 
-//   res.end('<html><body><h1>Hello, World!</h1></body></html>')
+const dev_db_url =
+  "mongodb+srv://kehindemalagu:0JBJ2rFYDXxezVOJ@clusterloclib.oktvfbb.mongodb.net/local_library?retryWrites=true&w=majority&appName=ClusterLocLib";
 
-//   res.on('error', (err) => {
-//     console.error(err.stack)
-//   })
-// });
+const mongoDB = process.env.MONGODB_URI || dev_db_url;
 
-// server.listen(8080);
+main().catch((err) => console.log(err));
 
-// const EventEmitter = require('node:events');
+//Connect to DB
+async function main() {
+  await mongoose.connect(mongoDB);
+}
 
-// class MyEmitter extends EventEmitter {}
+// view engine setup
+app.set("views", path.join(__dirname, "views"));
+app.set("view engine", "pug");
 
-// const myEmitter = new MyEmitter();
+//middleware
+app.use(compression()); // compress all routes
 
-// myEmitter.on('event', () => {
-//   console.log('an event occurred!');
-// });
-
-// myEmitter.emit('event');
-
-// const EventEmitter = require('node:events');
-// class MyEmitter extends EventEmitter {}
-// const myEmitter = new MyEmitter();
-
-// When 'event' event is emmitted
-// myEmitter.on('event', function(a, b) {
-//   console.log(a, b, this, this === myEmitter);
-//   // Prints:
-//   //   a b MyEmitter {
-//   //     _events: [Object: null prototype] { event: [Function (anonymous)] },
-//   //     _eventsCount: 1,
-//   //     _maxListeners: undefined,
-//   //     [Symbol(shapeMode)]: false,
-//   //     [Symbol(kCapture)]: false
-//   //   } true
-// });
-
-//Passes these arguments to the callback function above
-// myEmitter.emit('event', 'a', 'b');
-
-let http = require("node:http");
-
-let fs = require("node:fs");
-const { error } = require("node:console");
-
-// let server = http.createServer((req, res) => {
-//   let { headers, method, httpVersion, url } = req;
-
-//   //console.log(headers, method, httpVersion, url);
-
-//   //The req parameter is basically an
-//   // http.IncomingMessage object under the hood.
-//   //which is an extension of class readable strem
-//   console.log("request recieved");
-
-//   let body = [];
-
-//   // Plugging into the readable stream Events
-//   req.on("error", (err) => {
-//     console.error(err);
-//   });
-
-//   req.on("data", (chunk) => {
-//     body.push(chunk);
-//   });
-
-//   req.on("end", () => {
-//     body = Buffer.concat(body).toString();
-
-//     // console.log(body)
-
-//     // The res parameter is an http.serverResponse
-//     //which extends http.outgoingMessage
-//     // which is an extension of class Stream
-
-//     res.on('error', (err) => {
-//       console.error(err)
-//     })
-
-//     res.statusCode = 200
-
-//     res.setHeader('Content-Type', 'application/json')
-
-//     //Object construction
-//     let responseBody = { headers, method, url, body }
-    
-//     res.write(JSON.stringify(responseBody))
-
-//     res.end()
-
-//   });
-
-
-//   //This statement returns an empty array
-//   // because the emmitters are asynchronous
-//   // console.log(body);
-
-// });
-
-//filesystem next
-//fs.readFile('./home.html', 'utf-8' ,callback)
-
-
-
-
-// for some reason this code using PIPE
-// does not listen for the emitter end for 
-// both response and request
-let server = http
-  .createServer((request, response) => {
-    request.on('error', err => {
-      console.error(err);
-      response.statusCode = 400;
-      response.end();
-    });
-    response.on('error', err => {
-      console.error(err);
-    });
-
-    if (request.method === 'POST' && request.url === '/echo') {
-      request.pipe(response);
-    } else {
-      response.statusCode = 404;
-      response.end();
-    }
+app.use(
+  helmet.contentSecurityPolicy({
+    directives: {
+      "script-src": ["'self'", "code.jquery.com", "cdn.jsdelivr.net"],
+    },
   })
+);
 
-server.listen(8080);
+app.use(limiter);
+app.use(logger("dev"));
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
+app.use(express.static(path.join(__dirname, "public")));
 
-//This is the event emmited when a request is recieved
-// THe arrow function i passed in create server
-// is called a listener function because it is passed
-// to this event automatically so i dont write this
-//again
+app.use("/", indexRouter);
+app.use("/users", usersRouter);
+app.use("/catalog", catalogRouter);
 
-// server.on('request', () => {
+// catch 404 and forward to error handler
+app.use(function (req, res, next) {
+  next(createError(404));
+});
 
-//   console.log('request recieved')
-// })
+// error handler
+app.use(function (err, req, res, next) {
+  // set locals, only providing error in development
+  res.locals.message = err.message;
+  res.locals.error = req.app.get("env") === "development" ? err : {};
 
-// function callback(err,data) {
-//   if (err) throw err;
-//   console.log('File is being read')
+  // render the error page
+  res.status(err.status || 500);
+  res.render("error");
+});
 
-//   console.log(data)
-// }
+module.exports = app;
